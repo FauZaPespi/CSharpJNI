@@ -13,10 +13,35 @@ namespace PureJNI
                 MessageBoxA(nint.Zero, "DllMain called", "Test", 0);
                 AllocConsole();
                 Console.WriteLine("DllMain called with console..");
-                
 
+                uint threadId;
+                IntPtr hThread = CreateThread(
+                    IntPtr.Zero,
+                    0,
+                    threadCallback,
+                    IntPtr.Zero,
+                    0,
+                    out threadId
+                );
+
+                if (hThread == IntPtr.Zero)
+                {
+                    Console.WriteLine($"erreur : {Marshal.GetLastWin32Error()}");
+                }
+                else
+                {
+
+                    Console.WriteLine($"ID du Thread : {threadId}");
+                }
+                System.Threading.Thread.Sleep(2000);
             }
             return true;
+        }
+
+        public static uint threadCallback(IntPtr lpParameter)
+        {
+            Console.WriteLine("[Log] From thread");
+            return 0;
         }
 
         #region Import

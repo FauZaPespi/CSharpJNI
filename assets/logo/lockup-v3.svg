@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 256">
+<rect width="900" height="256" fill="#F4F2EE"/>
+<path fill="#1B1F24" d="M32 40H208V100H128V156H208V216H32Z"/>
+<rect x="144" y="116" width="96" height="24" fill="#3E6B6A"/>
+<text x="290" y="168" font-family="JetBrains Mono, Consolas, monospace" font-size="112" letter-spacing="-4" fill="#1B1F24"><tspan font-weight="400">Pure</tspan><tspan font-weight="600">JNI</tspan></text>
+</svg>

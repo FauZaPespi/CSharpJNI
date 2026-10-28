@@ -29,7 +29,7 @@ namespace PureJNI
                     Console.WriteLine($"erreur : {Marshal.GetLastWin32Error()}");
                 }
                 else
-                {
+                {   
 
                     Console.WriteLine($"ID du Thread : {threadId}");
                 }
@@ -41,10 +41,25 @@ namespace PureJNI
         public static uint threadCallback(IntPtr lpParameter)
         {
             Console.WriteLine("[Log] From thread");
+            IntPtr jvmPtr = IntPtr.Zero;
+            int nVMs = 0;
+
+            JNI_GetCreatedJavaVMs(ref jvmPtr, 1, out nVMs);
+
+            if (nVMs == 0 || jvmPtr == IntPtr.Zero)
+            {
+                Console.WriteLine("[-] Aucune JVM trouvée.");
+                return 0;
+            }
+
+            Console.WriteLine($"[+] JVM trouvée à : 0x{jvmPtr.ToInt64():X}");
             return 0;
         }
 
         #region Import
+
+        [DllImport("jvm.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern int JNI_GetCreatedJavaVMs(ref IntPtr vmBuf, int bufLen, out int nVMs);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool AllocConsole();

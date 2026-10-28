@@ -29,7 +29,7 @@ namespace PureJNI
                     Console.WriteLine($"erreur : {Marshal.GetLastWin32Error()}");
                 }
                 else
-                {   
+                {
 
                     Console.WriteLine($"ID du Thread : {threadId}");
                 }
@@ -38,9 +38,9 @@ namespace PureJNI
             return true;
         }
 
-        public static uint threadCallback(IntPtr lpParameter)
+        public unsafe static uint threadCallback(IntPtr lpParameter)
         {
-            Console.WriteLine("[Log] From thread");
+            Console.WriteLine("From thread");
             IntPtr jvmPtr = IntPtr.Zero;
             int nVMs = 0;
 
@@ -48,11 +48,34 @@ namespace PureJNI
 
             if (nVMs == 0 || jvmPtr == IntPtr.Zero)
             {
-                Console.WriteLine("[-] Aucune JVM trouvée.");
+                Console.WriteLine("no jvm found.");
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine($"JVM found: 0x{jvmPtr.ToInt64():X}");
+            }
+            JniNative.JavaVM* javaVM = (JniNative.JavaVM*)jvmPtr;
+            IntPtr jniEnvPtr = IntPtr.Zero;
+
+            int res = javaVM->functions->GetEnv(jvmPtr, (void**)&jniEnvPtr, 0x00010008); // Pour Java 8 dcp 0x00010008 -> Java 8
+
+            if (res == -2)
+            {
+                Console.WriteLine("Thread pas attach. Tentative d'attach...");
+                res = javaVM->functions->AttachCurrentThread(jvmPtr, (void**)&jniEnvPtr, null);
+            }
+
+            if (res != 0 || jniEnvPtr == IntPtr.Zero)
+            {
+                Console.WriteLine($"erreur : {res}");
                 return 0;
             }
 
-            Console.WriteLine($"[+] JVM trouvée à : 0x{jvmPtr.ToInt64():X}");
+            Console.WriteLine($"JNIEnv : 0x{jniEnvPtr.ToInt64():X}");
+
+            javaVM->functions->DetachCurrentThread(jvmPtr);
+            Console.WriteLine("thread detach");
             return 0;
         }
 

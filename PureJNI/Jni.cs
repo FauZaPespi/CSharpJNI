@@ -204,10 +204,10 @@ namespace PureJNI
             public void* reserved1;
             public void* reserved2;
 
-            public delegate* unmanaged<IntPtr, int> DestroyJavaVM;
+            public delegate* unmanaged<IntPtr, void**, void*, int> DestroyJavaVM;
             public delegate* unmanaged<IntPtr, void**, void*, int> AttachCurrentThread;
             public delegate* unmanaged<IntPtr, int> DetachCurrentThread;
-            public delegate* unmanaged<IntPtr, void**, int, int> GetEnv; // Utilisé pour récupérer le JNIEnv*
+            public delegate* unmanaged<IntPtr, void**, int, int> GetEnv;
             public delegate* unmanaged<IntPtr, void**, void*, int> AttachCurrentThreadAsDaemon;
         }
     }

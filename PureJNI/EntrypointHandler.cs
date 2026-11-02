@@ -74,6 +74,17 @@ namespace PureJNI
 
             Console.WriteLine($"JNIEnv : 0x{jniEnvPtr.ToInt64():X}");
 
+            JniNative.JNIEnv* env = (JniNative.JNIEnv*)jniEnvPtr;
+            fixed (byte* className = "ave"u8) { 
+            IntPtr localClass = env->functions->FindClass((IntPtr)env, className);
+
+            if (localClass != IntPtr.Zero)
+                Console.WriteLine("class found");
+            else
+                Console.WriteLine("class not found");
+            }
+            // fin
+
             javaVM->functions->DetachCurrentThread(jvmPtr);
             Console.WriteLine("thread detach");
             return 0;

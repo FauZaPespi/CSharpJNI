@@ -1,10 +1,12 @@
-﻿using System.Runtime.InteropServices;
+﻿using PureJNI;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace PureJNI
 {
     internal partial class EntrypointHandler
     {
+        //https://github.com/dotnet/runtime/issues/66546
         [UnmanagedCallersOnly(EntryPoint = "DllMain")]
         public static bool DllMain(nint hModule, uint ul_reason_for_call, nint lpReserved)
         {
@@ -41,6 +43,7 @@ namespace PureJNI
         public unsafe static uint threadCallback(IntPtr lpParameter)
         {
             Console.WriteLine("From thread");
+            System.Threading.Thread.Sleep(8000);
             IntPtr jvmPtr = IntPtr.Zero;
             int nVMs = 0;
 
@@ -75,15 +78,72 @@ namespace PureJNI
             Console.WriteLine($"JNIEnv : 0x{jniEnvPtr.ToInt64():X}");
 
             JniNative.JNIEnv* env = (JniNative.JNIEnv*)jniEnvPtr;
-            fixed (byte* className = "ave"u8) { 
-            IntPtr localClass = env->functions->FindClass((IntPtr)env, className);
+            // https://mmv.wagyourtail.xyz/?q=%22net%2Fminecraft%2Fclient%2FMinecraft%22&MCV=%221.8.9%22
+            IntPtr localClass = JniUtils.FindClass(env, "ave");
 
             if (localClass != IntPtr.Zero)
+            {
                 Console.WriteLine("class found");
-            else
-                Console.WriteLine("class not found");
+
+                IntPtr getDebugFpsMethodId = JniUtils.GetStaticMethodID(env, localClass, "ai", "()I");
+
+                if (getDebugFpsMethodId != IntPtr.Zero)
+                {
+                    Console.WriteLine("getDebugFPS method found");
+                    if (getDebugFpsMethodId != IntPtr.Zero)
+                    {
+                        int fps = JniUtils.CallStaticIntMethod(env, localClass, getDebugFpsMethodId);
+                        Console.WriteLine($"FPS actuels : {fps}");
+                        System.Threading.Thread.Sleep(500);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("getDebugFPS method not found");
+                }
+                IntPtr getMinecraftMethodID = JniUtils.GetStaticMethodID(env, localClass, "A", "()Lave;");
+                if (getMinecraftMethodID != IntPtr.Zero)
+                {
+                    IntPtr minecraftInstance = JniUtils.CallStaticObjectMethod(env, localClass, getMinecraftMethodID);
+                    if (minecraftInstance != IntPtr.Zero)
+                    {
+                        Console.WriteLine("Instance de Minecraft récupérée.");
+
+                        IntPtr getSessionMethodID = JniUtils.GetMethodID(env, localClass, "L", "()Lavm;");
+                        if (getSessionMethodID != IntPtr.Zero)
+                        {
+                            IntPtr sessionObj = JniUtils.CallObjectMethod(env, minecraftInstance, getSessionMethodID);
+                            if (sessionObj != IntPtr.Zero)
+                            {
+                                Console.WriteLine("Objet Session récupéré.");
+
+                                IntPtr sessionClass = JniUtils.FindClass(env, "avm");
+                                IntPtr usernameMethodID = JniUtils.GetMethodID(env, sessionClass, "c", "()Ljava/lang/String;");
+
+                                if (usernameMethodID != IntPtr.Zero)
+                                {
+                                    IntPtr usernameStrObj = JniUtils.CallObjectMethod(env, sessionObj, usernameMethodID);
+                                    if (usernameStrObj != IntPtr.Zero)
+                                    {
+                                        byte* utfChars = JniUtils.GetStringUTFChars(env, usernameStrObj);
+                                        if (utfChars != null)
+                                        {
+                                            string username = Marshal.PtrToStringAnsi((IntPtr)utfChars);
+                                            Console.WriteLine($"Nom d'utilisateur : {username}");
+
+                                            JniUtils.ReleaseStringUTFChars(env, usernameStrObj, utfChars);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            // fin
+            else
+            {
+                Console.WriteLine("Classe non trouvée.");
+            }
 
             javaVM->functions->DetachCurrentThread(jvmPtr);
             Console.WriteLine("thread detach");
@@ -108,3 +168,4 @@ namespace PureJNI
     }
 
 }
+

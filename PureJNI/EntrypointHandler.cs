@@ -61,7 +61,7 @@ namespace PureJNI
             JniNative.JavaVM* javaVM = (JniNative.JavaVM*)jvmPtr;
             IntPtr jniEnvPtr = IntPtr.Zero;
 
-            int res = javaVM->functions->GetEnv(jvmPtr, (void**)&jniEnvPtr, 0x00010008); // Pour Java 8 dcp 0x00010008 -> Java 8
+            int res = javaVM->functions->GetEnv(jvmPtr, (void**)&jniEnvPtr, 0x00010008);
 
             if (res == -2)
             {
@@ -78,76 +78,330 @@ namespace PureJNI
             Console.WriteLine($"JNIEnv : 0x{jniEnvPtr.ToInt64():X}");
 
             JniNative.JNIEnv* env = (JniNative.JNIEnv*)jniEnvPtr;
-            // https://mmv.wagyourtail.xyz/?q=%22net%2Fminecraft%2Fclient%2FMinecraft%22&MCV=%221.8.9%22
-            IntPtr localClass = JniUtils.FindClass(env, "ave");
-
-            if (localClass != IntPtr.Zero)
+            bool running = true;
+            if (running)
             {
-                Console.WriteLine("class found");
+                IntPtr localClass = JniUtils.FindClass(env, "ave");
 
-                IntPtr getDebugFpsMethodId = JniUtils.GetStaticMethodID(env, localClass, "ai", "()I");
-
-                if (getDebugFpsMethodId != IntPtr.Zero)
+                if (localClass != IntPtr.Zero)
                 {
-                    Console.WriteLine("getDebugFPS method found");
-                    if (getDebugFpsMethodId != IntPtr.Zero)
+                    //Console.WriteLine($"Current FPS: {GetDebugFPS(env, localClass)}");
+                    IntPtr minecraftInstance = GetMCInstance(env, localClass);
+                    if (minecraftInstance != IntPtr.Zero)
                     {
-                        int fps = JniUtils.CallStaticIntMethod(env, localClass, getDebugFpsMethodId);
-                        Console.WriteLine($"FPS actuels : {fps}");
-                        System.Threading.Thread.Sleep(500);
+                        IntPtr sessionObj = GetSessionObj(env, localClass, minecraftInstance);
+                        if (sessionObj != IntPtr.Zero)
+                        {
+                            //Console.WriteLine($"Username: {GetUsername(env, localClass, sessionObj)}");
+
+
+                            IntPtr thePlayer = GetThePlayer(env, localClass);
+                            if (thePlayer != IntPtr.Zero)
+                            {
+                                //Console.WriteLine("thePlayer found");
+                                //Console.WriteLine($"Position: X={GetPosX(env, localClass, thePlayer)} Y={GetPosY(env, localClass, thePlayer)} Z={GetPosZ(env, localClass, thePlayer)}");
+
+                                SetTimerSpeed(env, localClass, 2);
+                                while (running)
+                                {
+                                    Console.WriteLine($"Current FPS: {GetDebugFPS(env, localClass)}");
+                                    Console.WriteLine($"Username: {GetUsername(env, localClass, sessionObj)}");
+                                    Console.WriteLine($"Position: X={GetPosX(env, localClass, thePlayer)} Y={GetPosY(env, localClass, thePlayer)} Z={GetPosZ(env, localClass, thePlayer)}");
+                                    Thread.Sleep(1000);
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("thePlayer not found");
+                            }
+                        }
                     }
+
                 }
                 else
                 {
-                    Console.WriteLine("getDebugFPS method not found");
+                    Console.WriteLine("Classe non trouvée.");
                 }
-                IntPtr getMinecraftMethodID = JniUtils.GetStaticMethodID(env, localClass, "A", "()Lave;");
+                env->functions->PopLocalFrame((nint)env, IntPtr.Zero);
+            }
+
+            javaVM->functions->DetachCurrentThread(jvmPtr);
+            Thread.Sleep(50);
+            Console.WriteLine("thread detach");
+            return 0;
+        }
+
+        unsafe public static int GetDebugFPS(JniNative.JNIEnv* env, IntPtr MinecraftClazz)
+        {
+            if (MinecraftClazz != IntPtr.Zero)
+            {
+                IntPtr getDebugFpsMethodId = JniUtils.GetStaticMethodID(env, MinecraftClazz, "ai", "()I");
+
+                if (getDebugFpsMethodId != IntPtr.Zero)
+                {
+                    if (getDebugFpsMethodId != IntPtr.Zero)
+                    {
+                        int fps = JniUtils.CallStaticIntMethod(env, MinecraftClazz, getDebugFpsMethodId);
+                        return fps;
+                    }
+                }
+            }
+            return 0;
+        }
+
+        unsafe public static IntPtr GetSessionObj(JniNative.JNIEnv* env, IntPtr MinecraftClazz, IntPtr mcInstance)
+        {
+            if (MinecraftClazz != IntPtr.Zero)
+            {
+                IntPtr getSessionMethodID = JniUtils.GetMethodID(env, MinecraftClazz, "L", "()Lavm;");
+                if (getSessionMethodID != IntPtr.Zero)
+                {
+                    IntPtr sessionObj = JniUtils.CallObjectMethod(env, mcInstance, getSessionMethodID);
+                    if (sessionObj != IntPtr.Zero)
+                    {
+                        return sessionObj;
+                    }
+                }
+            }
+            return 0;
+        }
+        unsafe public static IntPtr GetMCInstance(JniNative.JNIEnv* env, IntPtr MinecraftClazz)
+        {
+            if (MinecraftClazz != IntPtr.Zero)
+            {
+                IntPtr getMinecraftMethodID = JniUtils.GetStaticMethodID(env, MinecraftClazz, "A", "()Lave;");
                 if (getMinecraftMethodID != IntPtr.Zero)
                 {
-                    IntPtr minecraftInstance = JniUtils.CallStaticObjectMethod(env, localClass, getMinecraftMethodID);
+                    IntPtr minecraftInstance = JniUtils.CallStaticObjectMethod(env, MinecraftClazz, getMinecraftMethodID);
                     if (minecraftInstance != IntPtr.Zero)
                     {
-                        Console.WriteLine("Instance de Minecraft récupérée.");
+                        return minecraftInstance;
+                    }
+                }
+            }
+            return 0;
+        }
 
-                        IntPtr getSessionMethodID = JniUtils.GetMethodID(env, localClass, "L", "()Lavm;");
-                        if (getSessionMethodID != IntPtr.Zero)
+
+        unsafe public static string GetUsername(JniNative.JNIEnv* env, IntPtr MinecraftClazz, IntPtr sessionObj)
+        {
+            string username = "Not found";
+            if (MinecraftClazz != IntPtr.Zero)
+            {
+                IntPtr sessionClass = JniUtils.FindClass(env, "avm");
+                IntPtr usernameMethodID = JniUtils.GetMethodID(env, sessionClass, "c", "()Ljava/lang/String;");
+
+                if (usernameMethodID != IntPtr.Zero)
+                {
+                    IntPtr usernameStrObj = JniUtils.CallObjectMethod(env, sessionObj, usernameMethodID);
+                    if (usernameStrObj != IntPtr.Zero)
+                    {
+                        byte* utfChars = JniUtils.GetStringUTFChars(env, usernameStrObj);
+                        if (utfChars != null)
                         {
-                            IntPtr sessionObj = JniUtils.CallObjectMethod(env, minecraftInstance, getSessionMethodID);
-                            if (sessionObj != IntPtr.Zero)
-                            {
-                                Console.WriteLine("Objet Session récupéré.");
-
-                                IntPtr sessionClass = JniUtils.FindClass(env, "avm");
-                                IntPtr usernameMethodID = JniUtils.GetMethodID(env, sessionClass, "c", "()Ljava/lang/String;");
-
-                                if (usernameMethodID != IntPtr.Zero)
-                                {
-                                    IntPtr usernameStrObj = JniUtils.CallObjectMethod(env, sessionObj, usernameMethodID);
-                                    if (usernameStrObj != IntPtr.Zero)
-                                    {
-                                        byte* utfChars = JniUtils.GetStringUTFChars(env, usernameStrObj);
-                                        if (utfChars != null)
-                                        {
-                                            string username = Marshal.PtrToStringAnsi((IntPtr)utfChars);
-                                            Console.WriteLine($"Nom d'utilisateur : {username}");
-
-                                            JniUtils.ReleaseStringUTFChars(env, usernameStrObj, utfChars);
-                                        }
-                                    }
-                                }
-                            }
+                            username = Marshal.PtrToStringAnsi((IntPtr)utfChars);
+                            JniUtils.ReleaseStringUTFChars(env, usernameStrObj, utfChars);
                         }
                     }
                 }
             }
-            else
-            {
-                Console.WriteLine("Classe non trouvée.");
-            }
+            return username;
+        }
 
-            javaVM->functions->DetachCurrentThread(jvmPtr);
-            Console.WriteLine("thread detach");
+        unsafe public static IntPtr GetThePlayer(JniNative.JNIEnv* env, IntPtr MinecraftClazz)
+        {
+            if (MinecraftClazz != IntPtr.Zero)
+            {
+                IntPtr mcInstance = GetMCInstance(env, MinecraftClazz);
+                IntPtr playerFieldID = JniUtils.GetFieldID(env, MinecraftClazz, "h", "Lbew;");
+
+                if (playerFieldID != IntPtr.Zero)
+                {
+                    if (mcInstance != IntPtr.Zero)
+                    {
+                        IntPtr thePlayer = JniUtils.GetObjectField(env, mcInstance, playerFieldID);
+
+                        if (thePlayer != IntPtr.Zero)
+                        {
+                            return thePlayer;
+                        }
+                    }
+                }
+            }
             return 0;
+        }
+
+        unsafe public static IntPtr GetEntityClazz(JniNative.JNIEnv* env)
+        {
+            IntPtr entityClass = JniUtils.FindClass(env, "pk");
+            if (entityClass != IntPtr.Zero)
+            {
+                return entityClass;
+            }
+            return 0;
+        }
+
+        unsafe public static double GetPosX(JniNative.JNIEnv* env, IntPtr MinecraftClazz, IntPtr thePlayer)
+        {
+            double posX = 0;
+            if (MinecraftClazz != IntPtr.Zero)
+            {
+                IntPtr mcInstance = GetMCInstance(env, MinecraftClazz);
+
+                if (thePlayer != IntPtr.Zero)
+                {
+                    IntPtr EntityClass = GetEntityClazz(env);
+                    if (EntityClass != IntPtr.Zero && mcInstance != IntPtr.Zero)
+                    {
+                        IntPtr posXFieldID = JniUtils.GetFieldID(env, EntityClass, "s", "D");
+                        if (posXFieldID != IntPtr.Zero)
+                        {
+                            posX = JniUtils.GetDoubleField(env, thePlayer, posXFieldID);
+                        }
+                    }
+                }
+            }
+            return posX;
+        }
+        unsafe public static double GetPosY(JniNative.JNIEnv* env, IntPtr MinecraftClazz, IntPtr thePlayer)
+        {
+            double posY = 0;
+            if (MinecraftClazz != IntPtr.Zero)
+            {
+                IntPtr mcInstance = GetMCInstance(env, MinecraftClazz);
+
+                if (thePlayer != IntPtr.Zero)
+                {
+                    IntPtr EntityClass = GetEntityClazz(env);
+                    if (EntityClass != IntPtr.Zero && mcInstance != IntPtr.Zero)
+                    {
+                        IntPtr posYFieldID = JniUtils.GetFieldID(env, EntityClass, "t", "D");
+                        if (posYFieldID != IntPtr.Zero)
+                        {
+                            posY = JniUtils.GetDoubleField(env, thePlayer, posYFieldID);
+                        }
+                    }
+                }
+            }
+            return posY;
+        }
+
+        unsafe public static double GetPosZ(JniNative.JNIEnv* env, IntPtr MinecraftClazz, IntPtr thePlayer)
+        {
+            double posZ = 0;
+            if (MinecraftClazz != IntPtr.Zero)
+            {
+                IntPtr mcInstance = GetMCInstance(env, MinecraftClazz);
+
+                if (thePlayer != IntPtr.Zero)
+                {
+                    IntPtr EntityClass = GetEntityClazz(env);
+                    if (EntityClass != IntPtr.Zero && mcInstance != IntPtr.Zero)
+                    {
+                        IntPtr posZFieldID = JniUtils.GetFieldID(env, EntityClass, "u", "D");
+                        if (posZFieldID != IntPtr.Zero)
+                        {
+                            posZ = JniUtils.GetDoubleField(env, thePlayer, posZFieldID);
+                        }
+                    }
+                }
+            }
+            return posZ;
+        }
+
+
+        unsafe public static void SetPosX(JniNative.JNIEnv* env, IntPtr MinecraftClazz, IntPtr thePlayer, double val)
+        {
+            if (MinecraftClazz != IntPtr.Zero)
+            {
+                IntPtr mcInstance = GetMCInstance(env, MinecraftClazz);
+
+                if (thePlayer != IntPtr.Zero)
+                {
+                    IntPtr EntityClass = GetEntityClazz(env);
+                    if (EntityClass != IntPtr.Zero && mcInstance != IntPtr.Zero)
+                    {
+                        IntPtr posXFieldID = JniUtils.GetFieldID(env, EntityClass, "s", "D");
+                        if (posXFieldID != IntPtr.Zero)
+                        {
+                            JniUtils.SetDoubleField(env, thePlayer, posXFieldID, val);
+                        }
+                    }
+                }
+            }
+        }
+        unsafe public static void SetPosY(JniNative.JNIEnv* env, IntPtr MinecraftClazz, IntPtr thePlayer, double val)
+        {
+            if (MinecraftClazz != IntPtr.Zero)
+            {
+                IntPtr mcInstance = GetMCInstance(env, MinecraftClazz);
+
+                if (thePlayer != IntPtr.Zero)
+                {
+                    IntPtr EntityClass = GetEntityClazz(env);
+                    if (EntityClass != IntPtr.Zero && mcInstance != IntPtr.Zero)
+                    {
+                        IntPtr posYFieldID = JniUtils.GetFieldID(env, EntityClass, "t", "D");
+                        if (posYFieldID != IntPtr.Zero)
+                        {
+                            JniUtils.SetDoubleField(env, thePlayer, posYFieldID, val);
+                        }
+                    }
+                }
+            }
+        }
+        unsafe public static void SetPosZ(JniNative.JNIEnv* env, IntPtr MinecraftClazz, IntPtr thePlayer, double val)
+        {
+            if (MinecraftClazz != IntPtr.Zero)
+            {
+                IntPtr mcInstance = GetMCInstance(env, MinecraftClazz);
+
+                if (thePlayer != IntPtr.Zero)
+                {
+                    IntPtr EntityClass = GetEntityClazz(env);
+                    if (EntityClass != IntPtr.Zero && mcInstance != IntPtr.Zero)
+                    {
+                        IntPtr posZFieldID = JniUtils.GetFieldID(env, EntityClass, "u", "D");
+                        if (posZFieldID != IntPtr.Zero)
+                        {
+                            JniUtils.SetDoubleField(env, thePlayer, posZFieldID, val);
+                        }
+                    }
+                }
+            }
+        }
+
+
+        unsafe public static void SetTimerSpeed(JniNative.JNIEnv* env, IntPtr MinecraftClazz, float speed)
+        {
+            if (MinecraftClazz != IntPtr.Zero)
+            {
+                IntPtr mcInstance = GetMCInstance(env, MinecraftClazz);
+                if (mcInstance != IntPtr.Zero)
+                {
+                    IntPtr timerFieldID = JniUtils.GetFieldID(env, MinecraftClazz, "Y", "Lavl;");
+
+                    if (timerFieldID != IntPtr.Zero)
+                    {
+                        IntPtr timerObj = JniUtils.GetObjectField(env, mcInstance, timerFieldID);
+                        if (timerObj != IntPtr.Zero)
+                        {
+                            IntPtr timerClass = JniUtils.FindClass(env, "avl");
+                            if (timerClass != IntPtr.Zero)
+                            {
+                                IntPtr timerSpeedFieldID = JniUtils.GetFieldID(env, timerClass, "d", "F");
+                                if (timerSpeedFieldID != IntPtr.Zero)
+                                {
+                                    JniUtils.SetFloatField(env, timerObj, timerSpeedFieldID, speed);
+
+                                }
+
+                            }
+
+                        }
+                    }
+                }
+            }
         }
 
         #region Import

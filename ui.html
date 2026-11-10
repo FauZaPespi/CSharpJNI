@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-zinc-900 text-white p-6">
+    <div class="max-w-lg mx-auto bg-zinc-800 border border-zinc-700 rounded-xl p-3 shadow-2xl">
+        <p>PureJNI UI</p>
+        <p>FPS: <i id="fps"></i></p>
+        <p>Username: <i id="username"></i></p>
+        <p>Position: <i id="position"></i></p>
+        <br>
+        <hr>
+        <br>
+        <p>Timer: <i id="timer"></i></p>
+        <input id="timerVal" type="range" min="0" max="200" value="100" class="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer dark:bg-zinc-600" onchange="updateTimer()">
+        <button onclick="resetTimer()" class="bg-blue-700 hover:bg-blue-800 text-white py-2 px-4 rounded">Reset Timer Value</button>
+        <br>
+        <br>
+        <button id="sendData" class="bg-green-700 hover:bg-green-800 text-white py-2 px-4 rounded" onclick="sendData()">Send data</button>
+    </div>
+
+    <script>
+        const ws = new WebSocket('ws://localhost:1337/');
+        const fpsElem = document.getElementById("fps");
+        const usernameElem = document.getElementById("username");
+        const positionElem = document.getElementById("position");
+        const timerTitleElem = document.getElementById("timer");
+        const timerElem = document.getElementById("timerVal");
+
+        ws.onopen = () => {
+            console.log("ws connecter");
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            console.log("ws message", data);
+            fpsElem.textContent = data.fps;
+            usernameElem.textContent = data.username;
+            positionElem.textContent = data.pos;
+        };
+
+        ws.onclose = () => {
+            console.log("ws deco");
+        };
+
+        function updateTimer() {
+            const timerValue = timerElem.value;
+            timerTitleElem.textContent = timerValue / 100;
+        }
+
+        function resetTimer() {
+            timerElem.value = 100;
+            updateTimer();
+        }
+
+        function sendData() {
+            const timerValue = timerElem.value;
+            const dataToSend = {
+                timer: timerValue
+            };
+            ws.send(JSON.stringify(dataToSend));
+            console.log("Data sent:", dataToSend);
+        }
+        
+    </script>
+</body>
+
+</html>

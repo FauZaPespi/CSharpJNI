@@ -19,6 +19,10 @@
     <IsAotCompatible>True</IsAotCompatible>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="OverlaySharp" Version="1.0.3" />
+  </ItemGroup>
+
   <!--
     NativeAOT finds link.exe via findvcvarsall.bat, which runs vcvarsall.bat in a cmd that inherits the caller's
     environment. With a long PATH (e.g. a Visual Studio terminal started before a PATH change), cmd fails with
@@ -26,22 +30,17 @@
     without the MSVC/SDK lib directories (LNK1104 LIBCMT.lib, LNK1181 advapi32.lib).
     Run findvcvarsall.bat ourselves with a minimal environment so the build no longer depends on the terminal.
   -->
-  <Target Name="FindVCVarsWithCleanEnvironment"
-          BeforeTargets="SetupOSSpecificProps"
-          Condition="'$(OS)' == 'Windows_NT' and '$(IlcUseEnvironmentalTools)' != 'true' and '$(ILCompilerTargetsPath)' != ''">
+  <Target Name="FindVCVarsWithCleanEnvironment" BeforeTargets="SetupOSSpecificProps" Condition="'$(OS)' == 'Windows_NT' and '$(IlcUseEnvironmentalTools)' != 'true' and '$(ILCompilerTargetsPath)' != ''">
     <PropertyGroup>
       <_CleanVCVarsPath>$(SystemRoot)\System32%3B$(SystemRoot)%3B$(SystemRoot)\System32\WindowsPowerShell\v1.0%3B$(MSBuildProgramFiles32)\Microsoft Visual Studio\Installer</_CleanVCVarsPath>
     </PropertyGroup>
 
-    <Exec Command="&quot;$([System.IO.Path]::GetDirectoryName($(ILCompilerTargetsPath)))\findvcvarsall.bat&quot; $(_targetArchitecture)"
-          EnvironmentVariables="PATH=$(_CleanVCVarsPath);LIB=;LIBPATH=;INCLUDE=;__VSCMD_PREINIT_PATH=;NoDefaultCurrentDirectoryInExePath="
-          IgnoreExitCode="true" ConsoleToMSBuild="true" StandardOutputImportance="Low">
+    <Exec Command="&quot;$([System.IO.Path]::GetDirectoryName($(ILCompilerTargetsPath)))\findvcvarsall.bat&quot; $(_targetArchitecture)" EnvironmentVariables="PATH=$(_CleanVCVarsPath);LIB=;LIBPATH=;INCLUDE=;__VSCMD_PREINIT_PATH=;NoDefaultCurrentDirectoryInExePath=" IgnoreExitCode="true" ConsoleToMSBuild="true" StandardOutputImportance="Low">
       <Output TaskParameter="ConsoleOutput" PropertyName="_CleanVCVarsOutput" />
       <Output TaskParameter="ExitCode" PropertyName="_CleanVCVarsExitCode" />
     </Exec>
 
-    <Error Condition="'$(_CleanVCVarsExitCode)' != '0'"
-           Text="findvcvarsall.bat a échoué (code $(_CleanVCVarsExitCode)) : $(_CleanVCVarsOutput). Vérifie que la charge de travail 'Développement Desktop en C++' de Visual Studio est installée." />
+    <Error Condition="'$(_CleanVCVarsExitCode)' != '0'" Text="findvcvarsall.bat a échoué (code $(_CleanVCVarsExitCode)) : $(_CleanVCVarsOutput). Vérifie que la charge de travail 'Développement Desktop en C++' de Visual Studio est installée." />
 
     <!-- Skip the stock call in SetupOSSpecificProps and hand it our result instead. -->
     <PropertyGroup>

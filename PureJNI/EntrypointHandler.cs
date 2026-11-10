@@ -1,4 +1,5 @@
 ﻿using PureJNI;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -43,7 +44,6 @@ namespace PureJNI
         public unsafe static uint threadCallback(IntPtr lpParameter)
         {
             Console.WriteLine("From thread");
-            System.Threading.Thread.Sleep(8000);
             IntPtr jvmPtr = IntPtr.Zero;
             int nVMs = 0;
 
@@ -100,31 +100,37 @@ namespace PureJNI
                             {
                                 //Console.WriteLine("thePlayer found");
                                 //Console.WriteLine($"Position: X={GetPosX(env, localClass, thePlayer)} Y={GetPosY(env, localClass, thePlayer)} Z={GetPosZ(env, localClass, thePlayer)}");
-
-                                SetTimerSpeed(env, localClass, 2);
-                                while (running)
-                                {
-                                    Console.WriteLine($"Current FPS: {GetDebugFPS(env, localClass)}");
-                                    Console.WriteLine($"Username: {GetUsername(env, localClass, sessionObj)}");
-                                    Console.WriteLine($"Position: X={GetPosX(env, localClass, thePlayer)} Y={GetPosY(env, localClass, thePlayer)} Z={GetPosZ(env, localClass, thePlayer)}");
-                                    Thread.Sleep(1000);
-                                }
+                                SetTimerSpeed(env, localClass, 0.5f);
                             }
-                            else
+                            //SetTimerSpeed(env, localClass, msg);
+                            while (running)
                             {
-                                Console.WriteLine("thePlayer not found");
+                                int fps = GetDebugFPS(env, localClass);
+                                string username = GetUsername(env, localClass, sessionObj);
+                                double posX = GetPosX(env, localClass, thePlayer);
+                                double posY = GetPosY(env, localClass, thePlayer);
+                                double posZ = GetPosZ(env, localClass, thePlayer);
+
+                                Console.WriteLine($"Current FPS: {fps}");
+                                Console.WriteLine($"Username: {username}");
+                                Console.WriteLine($"Position: X={posX} Y={posY} Z={posZ}");
+
+                                Thread.Sleep(1000);
                             }
                         }
+                        else
+                        {
+                            Console.WriteLine("thePlayer not found");
+                        }
                     }
+                }
 
-                }
-                else
-                {
-                    Console.WriteLine("Classe non trouvée.");
-                }
-                env->functions->PopLocalFrame((nint)env, IntPtr.Zero);
             }
-
+            else
+            {
+                Console.WriteLine("Classe non trouvée.");
+            }
+            env->functions->PopLocalFrame((nint)env, IntPtr.Zero);
             javaVM->functions->DetachCurrentThread(jvmPtr);
             Thread.Sleep(50);
             Console.WriteLine("thread detach");

@@ -46,7 +46,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace PureJNI
+namespace PureJNI.Jvm
 {
     public unsafe static class JniNative
     {

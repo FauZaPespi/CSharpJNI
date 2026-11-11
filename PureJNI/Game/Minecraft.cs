@@ -3,8 +3,6 @@ using C = PureJNI.Game.GameClasses;
 
 namespace PureJNI.Game
 {
-    // Wrapper of the Minecraft instance (ave) for one thread.
-    // Objects it returns are JNI local refs: use them inside the current tick / local frame only.
     public readonly unsafe struct Minecraft
     {
         public readonly JniNative.JNIEnv* Env;
@@ -27,7 +25,6 @@ namespace PureJNI.Game
 
         public int Fps => GetDebugFps(Env);
 
-        // Invalid (IsValid == false) when not in a world.
         public Player Player => new(Env, IsValid ? Jni.GetObjectField(Env, Handle, C.MinecraftThePlayer) : IntPtr.Zero);
 
         public Timer Timer => new(Env, IsValid ? Jni.GetObjectField(Env, Handle, C.MinecraftTimer) : IntPtr.Zero);

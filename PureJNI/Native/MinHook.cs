@@ -2,8 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace PureJNI.Native
 {
-    // MinHook bound through function pointers resolved from an absolute path:
-    // inside javaw.exe the DLL search path is Java's folder, not ours.
     internal static unsafe class MinHook
     {
         public const int MH_OK = 0;

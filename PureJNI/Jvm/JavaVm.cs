@@ -2,7 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace PureJNI.Jvm
 {
-    // Access to the JVM already running in the process (javaw.exe).
     public static unsafe partial class JavaVm
     {
         public const int JNI_OK = 0;
@@ -22,7 +21,6 @@ namespace PureJNI.Jvm
             return true;
         }
 
-        // Env of the current thread if it is already a Java thread (e.g. the Minecraft render thread), else null.
         public static JniNative.JNIEnv* GetEnv()
         {
             if (_vm == null) return null;
@@ -32,7 +30,6 @@ namespace PureJNI.Jvm
                 : null;
         }
 
-        // Env of the current thread, attaching it to the JVM when needed.
         public static JniNative.JNIEnv* Attach()
         {
             JniNative.JNIEnv* env = GetEnv();

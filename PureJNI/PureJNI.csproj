@@ -25,6 +25,23 @@
   </ItemGroup>
 
   <!--
+    Native DLLs embedded in PureJNI.dll and extracted at runtime by Core/NativeDeps.cs, so the release is a single file.
+    LogicalName must match the names used in NativeDeps.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="Native\libs\minhook.x64.dll" LogicalName="native.minhook.x64.dll" />
+    <EmbeddedResource Include="$([MSBuild]::EnsureTrailingSlash($(NuGetPackageRoot)))hexa.net.imgui\2.2.9\runtimes\win-x64\native\cimgui.dll" LogicalName="native.cimgui.dll" />
+    <EmbeddedResource Include="$([MSBuild]::EnsureTrailingSlash($(NuGetPackageRoot)))hexa.net.imgui.backends\1.0.18\runtimes\win-x64\native\ImGuiImpl.dll" LogicalName="native.ImGuiImpl.dll" />
+  </ItemGroup>
+
+  <!-- They are embedded: don't copy them next to PureJNI.dll on publish. -->
+  <Target Name="ExcludeEmbeddedNativesFromPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Filename)%(Extension)' == 'cimgui.dll' or '%(Filename)%(Extension)' == 'ImGuiImpl.dll'" />
+    </ItemGroup>
+  </Target>
+
+  <!--
     NativeAOT finds link.exe via findvcvarsall.bat, which runs vcvarsall.bat in a cmd that inherits the caller's
     environment. With a long PATH (e.g. a Visual Studio terminal started before a PATH change), cmd fails with
     "La ligne entrée est trop longue" (exit 255), which the ILCompiler targets silently ignore: link then runs

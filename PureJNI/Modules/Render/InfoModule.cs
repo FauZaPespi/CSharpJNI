@@ -2,7 +2,6 @@ using PureJNI.Game;
 
 namespace PureJNI.Modules.Render
 {
-    // Value-only module: reads FPS and player position, exposes them as text.
     public sealed class InfoModule : Module
     {
         public InfoModule() : base("Info", Category.Render, enabled: true) { }

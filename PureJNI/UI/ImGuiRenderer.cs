@@ -5,8 +5,6 @@ using Hexa.NET.ImGui.Backends.Win32;
 
 namespace PureJNI.UI
 {
-    // ImGui context + Win32 (input) and OpenGL2 (render) backends. Render thread only.
-    // OpenGL2 matches Minecraft 1.8's legacy GL and saves/restores the GL state it touches.
     internal static unsafe class ImGuiRenderer
     {
         public static bool Initialized { get; private set; }
@@ -15,11 +13,10 @@ namespace PureJNI.UI
         {
             ImGuiContextPtr ctx = ImGui.CreateContext();
             ImGui.SetCurrentContext(ctx);
-            // The backends DLL has its own ImGui globals: give it the same context.
             ImGuiImpl.SetCurrentContext(ctx);
 
             ImGuiIOPtr io = ImGui.GetIO();
-            io.IniFilename = null; // no imgui.ini written in the Minecraft folder
+            io.IniFilename = null; 
 
             ImGui.StyleColorsDark();
 

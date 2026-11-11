@@ -3,8 +3,6 @@ using M = PureJNI.Game.Mappings;
 
 namespace PureJNI.Game
 {
-    // Classes (global refs) and field/method IDs, resolved once.
-    // IDs and global refs are valid on every thread, so the worker and the render thread share them.
     public static unsafe class GameClasses
     {
         public static IntPtr Minecraft, Timer, Session, Entity, Mouse;
@@ -19,7 +17,6 @@ namespace PureJNI.Game
         private static volatile bool _ready;
         public static bool Ready => _ready;
 
-        // Returns false (and logs what is missing) when a mapping does not resolve.
         public static bool Init(JniNative.JNIEnv* env)
         {
             lock (InitLock)

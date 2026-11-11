@@ -1,6 +1,5 @@
 namespace PureJNI.Core
 {
-    // Console log (the console is opened by Bootstrap with AllocConsole).
     public static class Log
     {
         private static readonly object Lock = new();

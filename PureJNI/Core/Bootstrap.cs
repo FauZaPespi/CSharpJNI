@@ -8,14 +8,8 @@ using PureJNI.Native;
 
 namespace PureJNI.Core
 {
-    // Initialization order, on the thread started by DllMain. This thread then becomes the module worker.
     internal static unsafe class Bootstrap
     {
-        // Native DLLs expected next to PureJNI.dll.
-        private const string MinHookDll = "minhook.x64.dll";
-        private const string CImGuiDll = "cimgui.dll";
-        private const string ImGuiImplDll = "ImGuiImpl.dll";
-
         [UnmanagedCallersOnly]
         public static uint ThreadMain(IntPtr parameter)
         {
@@ -36,7 +30,6 @@ namespace PureJNI.Core
             string dir = ModuleDirectory();
             Log.Info($"PureJNI loaded from {dir}");
 
-            // 1. JVM + mappings
             if (!JavaVm.Find())
             {
                 Log.Error("no JVM found");
@@ -56,18 +49,16 @@ namespace PureJNI.Core
             }
             Log.Info("JVM attached, mappings resolved");
 
-            // 2. Native DLLs by absolute path: javaw.exe searches its own folder, not ours.
-            //    Once loaded, LoadLibrary("cimgui.dll") by name (done by Hexa) returns the loaded module.
-            LibraryLoader.CustomLoadFolders.Add(dir);
-            MinHook.Load(Path.Combine(dir, MinHookDll));
-            NativeLibrary.Load(Path.Combine(dir, CImGuiDll));
-            NativeLibrary.Load(Path.Combine(dir, ImGuiImplDll));
+            string nativeDir = NativeDeps.Extract();
+            Log.Info($"native DLLs in {nativeDir}");
+            LibraryLoader.CustomLoadFolders.Add(nativeDir);
+            MinHook.Load(Path.Combine(nativeDir, NativeDeps.MinHook));
+            NativeLibrary.Load(Path.Combine(nativeDir, NativeDeps.CImGui));
+            NativeLibrary.Load(Path.Combine(nativeDir, NativeDeps.ImGuiImpl));
 
-            // 3. Render hook (menu)
             if (!SwapBuffersHook.Install())
                 Log.Error("SwapBuffers hook failed, no menu");
 
-            // 4. Module worker loop (blocks until ModuleManager.Stop())
             Log.Info("module worker started, press INSERT in game for the menu");
             ModuleManager.Run(env);
 

@@ -9,8 +9,6 @@ using PureJNI.Native;
 
 namespace PureJNI.UI
 {
-    // Menu state and drawing. Everything here runs on the Minecraft render thread
-    // (SwapBuffers hook + WndProc). Modules are only touched through Enabled and setting values.
     internal static unsafe class Menu
     {
         private static volatile bool _visible;
@@ -24,7 +22,6 @@ namespace PureJNI.UI
 
         public static void Toggle() => _visible = !_visible;
 
-        // Called by the SwapBuffers hook every frame.
         public static void OnFrame(IntPtr hdc)
         {
             if (!ImGuiRenderer.Initialized)
@@ -42,15 +39,13 @@ namespace PureJNI.UI
                 ImGuiRenderer.Render(DrawAction);
         }
 
-        // Releases the LWJGL mouse grab while the menu is open, restores it on close.
-        // Done here and not in WndProc: we are inside the frame, not inside LWJGL's message pump.
         private static void ApplyMouseGrab()
         {
             bool visible = _visible;
             if (visible == _appliedVisible) return;
             _appliedVisible = visible;
 
-            JniNative.JNIEnv* env = JavaVm.GetEnv(); // the render thread is a Java thread
+            JniNative.JNIEnv* env = JavaVm.GetEnv(); 
             if (env == null || !GameClasses.Ready) return;
 
             if (visible)
@@ -105,7 +100,6 @@ namespace PureJNI.UI
             ImGui.Indent();
             foreach (var setting in module.Settings)
             {
-                // "##" suffix keeps ImGui IDs unique when two modules share a setting name.
                 string label = setting.Name + "##" + module.Name;
                 switch (setting)
                 {

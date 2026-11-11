@@ -3,7 +3,6 @@ using PureJNI.Modules.Settings;
 
 namespace PureJNI.Modules.Movement
 {
-    // Sets the game timer speed to the slider value while enabled, back to 1 when disabled.
     public sealed class TimerModule : Module
     {
         private readonly SliderSetting _speed;
@@ -17,7 +16,6 @@ namespace PureJNI.Modules.Movement
         protected override void OnTick(Minecraft mc)
         {
             float speed = _speed.Value;
-            // Only write when the value changed. NaN forces a write right after enable.
             if (speed != _applied)
             {
                 var timer = mc.Timer;

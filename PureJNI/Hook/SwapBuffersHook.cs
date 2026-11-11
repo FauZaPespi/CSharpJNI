@@ -5,8 +5,6 @@ using PureJNI.UI;
 
 namespace PureJNI.Hook
 {
-    // Hooks opengl32!wglSwapBuffers: called by Minecraft's render thread ("Client thread") at the end of every frame,
-    // with its GL context current. The menu is drawn here, right before the frame is presented.
     internal static unsafe class SwapBuffersHook
     {
         private static delegate* unmanaged<IntPtr, int> _original;
@@ -36,7 +34,6 @@ namespace PureJNI.Hook
                 Log.Error($"MH_CreateHook: {status}");
                 return false;
             }
-            // Set before enabling: the detour may run right after EnableHook.
             _original = (delegate* unmanaged<IntPtr, int>)original;
 
             status = MinHook.EnableHook(target);
@@ -52,7 +49,6 @@ namespace PureJNI.Hook
         [UnmanagedCallersOnly]
         private static int Detour(IntPtr hdc)
         {
-            // A managed exception must never cross into javaw.exe. After the first one the menu is disabled.
             if (!_failed)
             {
                 try

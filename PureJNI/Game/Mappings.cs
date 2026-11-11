@@ -1,7 +1,5 @@
 namespace PureJNI.Game
 {
-    // Every obfuscated name used by the client (Minecraft 1.8.9, notch names).
-    // Change them here only: the wrappers never hardcode a name.
     public static class Mappings
     {
         public static class Minecraft
